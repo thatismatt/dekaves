@@ -14,7 +14,7 @@
      :worker  (component/using (worker/map->Worker {})
                                [:options :state])
      :http    (component/using (server/map->HTTPServer {})
-                               [:options :state]))))
+                               [:options :worker]))))
 
 (defn status [node]
   (let [worker-status (worker/status (:worker node))

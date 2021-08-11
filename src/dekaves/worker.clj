@@ -5,22 +5,24 @@
             [com.stuartsierra.component :as component])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
-(defn run-thread [f]
-  (let [queue  (LinkedBlockingQueue.)
-        go?    (atom true)
-        thread (Thread.
-                #(do (while @go?
-                       (if-let [params (.poll queue 500 TimeUnit/MILLISECONDS)]
-                         (f {:params params})
-                         (log/debug :loop)))
-                     (log/info :shutdown)))]
-    (.start thread)
-    {:queue  queue
-     :go?    go?
-     :thread thread}))
+(defn offer [worker params]
+  (let [p                (promise)
+        params+promise   (assoc params ::promise p)
+        offer-timeout    (-> worker :options :queue-offer-timeout)
+        response-timeout (-> worker :options :response-timeout)
+        queued?          (-> worker :queue (.offer params+promise offer-timeout TimeUnit/MILLISECONDS))]
+    (if queued?
+      (deref p response-timeout
+             {:result :error
+              :error  "timeout"})
+      {:result :error
+       :error  "queue full"})))
 
 (defn handler [{:keys [params] :as request}]
-  (command/handle request params))
+  (let [result (command/handle request params)]
+    (when (::promise params)
+      (deliver (::promise params) result))
+    result))
 
 (defn app [{:keys [state options]}]
   (-> #'handler
@@ -39,10 +41,29 @@
                                             :go?    go?
                                             :thread thread-state})))
 
+(def options-defaults {:queue-size          1
+                       :queue-poll-timeout  1000
+                       :queue-offer-timeout 1000
+                       :response-timeout    1000})
+
 (defrecord Worker [options state queue go? thread]
   component/Lifecycle
   (start [this]
-    (merge this (run-thread (app this))))
+    (let [options (merge options-defaults options)
+          queue   (LinkedBlockingQueue. (:queue-size options))
+          go?     (atom true)
+          thread  (Thread.
+                   #(do (while @go?
+                          (if-let [params (.poll queue (:queue-poll-timeout options) TimeUnit/MILLISECONDS)]
+                            ((app this) {:params params})
+                            (log/debug :loop)))
+                        (log/info :shutdown)))]
+      (.start thread)
+      (assoc this
+             :options options
+             :queue   queue
+             :go?     go?
+             :thread  thread)))
   (stop [this]
     (reset! go? false)
     this))
