@@ -1,6 +1,7 @@
 (ns dekaves.middleware
   (:require [clojure.edn :as edn]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.tools.logging :as log]))
 
 (defn read-edn [in]
   (if (string? in)
@@ -21,7 +22,7 @@
 
 (defn debug-middleware [handler id]
   (fn [request]
-    (let [_        (println :request id (:params request))
+    (let [_        (log/info :request id (:params request))
           response (handler request)
-          _        (println :response id response)]
+          _        (log/info :response id response)]
       response)))

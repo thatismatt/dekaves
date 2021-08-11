@@ -1,5 +1,6 @@
 (ns dekaves.worker
-  (:require [dekaves.command :as command]
+  (:require [clojure.tools.logging :as log]
+            [dekaves.command :as command]
             [dekaves.middleware :as middleware])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
@@ -10,10 +11,9 @@
                 #(do (while @go?
                        (if-let [params (.poll queue 500 TimeUnit/MILLISECONDS)]
                          (f {:params params})
-                         (println :loop!))) ;; TODO: use proper logging
-                     (println :goodbye!) ;; TODO: use proper logging
-                     ))]
-    (.start thread) ;; TODO: separate thread create & start
+                         (log/debug :loop)))
+                     (log/info :shutdown)))]
+    (.start thread)
     {:queue  queue
      :go?    go?
      :thread thread}))
