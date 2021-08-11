@@ -13,11 +13,18 @@
 (def node-1
   (atom (core/build {:http {:port 9091}})))
 
-(swap! node-1 component/start-system)
+(def node-2
+  (atom (core/build {:http {:port 9092}})))
 
-(swap! node-1 component/stop-system)
+(do (swap! node-1 component/start-system)
+    (swap! node-2 component/start-system))
+
+(do (swap! node-1 component/stop-system)
+    (swap! node-2 component/stop-system))
 
 (core/status @node-1)
+
+(core/status @node-2)
 
 (client/request {:url "http://localhost:9091"}
                 {:op :ping})
@@ -45,10 +52,17 @@
                 {:op      :help
                  :command :help})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:url (str "http://localhost:" (-> @node-2 :options :http :port))}
                 {:op    :register
-                 :nodes [{:host "localhost"
-                          :port 9093}]})
+                 :nodes [{:id   (-> @node-1 :options :id)
+                          :host "localhost"
+                          :port (-> @node-1 :options :http :port)}]})
+
+(client/request {:url (str "http://localhost:" (-> @node-1 :options :http :port))}
+                {:op    :register
+                 :nodes [{:id   (-> @node-2 :options :id)
+                          :host "localhost"
+                          :port (-> @node-2 :options :http :port)}]})
 
 (client/request {:url "http://localhost:9091"}
                 {:op :nodes})
@@ -56,27 +70,5 @@
 (client/request {:url "http://localhost:9091"}
                 {:op :unknown})
 
-;; (-> node-1 :worker :queue (.poll 500 TimeUnit/MILLISECONDS))
-(-> node-1 :worker :queue (.offer {:op :count}))
-
-(-> node-1 :worker :queue (.offer {:op    :store
-                                   :key   :qux
-                                   :value :zim}))
-
-(def queue (LinkedBlockingQueue.))
-
-(.offer queue {:op :ping})
-
-(.poll queue 500 TimeUnit/MILLISECONDS)
-
-)
-
-(comment ;; http server
-()
-
-(def http-server
-  (server/start {:http {:port 9091}}))
-
-(.stop http-server)
 
 )
