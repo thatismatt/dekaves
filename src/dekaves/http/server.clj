@@ -25,5 +25,6 @@
   (.stop server))
 
 (defn status [server]
-  (let [state (-> server .getState str/lower-case keyword)]
-    {:status state}))
+  (if-let [state (some-> server (.getState) str/lower-case keyword)]
+    {:status state}
+    {:status :built}))

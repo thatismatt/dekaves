@@ -21,5 +21,10 @@
    :http   (server/stop (:http node))})
 
 (defn status [node]
-  {:worker (worker/status (:worker node))
-   :http   (server/status (:http node))})
+  (let [worker-status (worker/status (:worker node))
+        http-status   (server/status (:http node))]
+    {:worker worker-status
+     :http http-status
+     :status (if (= worker-status http-status)
+               (:status worker-status)
+               :error)}))

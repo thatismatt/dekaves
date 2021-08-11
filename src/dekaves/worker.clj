@@ -34,12 +34,13 @@
   nil)
 
 (defn status [worker]
-  (let [go?          (-> worker :go? deref)
-        thread-state (.getState (:thread worker))
+  (let [go?          (some-> worker :go? deref)
+        thread-state (some-> worker :thread .getState)
         terminated?  (= thread-state Thread$State/TERMINATED)]
     (cond
-      (and go? (not terminated?)) {:status :going}
-      (and (not go?) terminated?) {:status :stopped}
-      :else                       {:status :error
-                                   :go?    go?
-                                   :thread thread-state})))
+      (and (nil? go?) (nil? thread-state)) {:status :built}
+      (and go? (not terminated?))          {:status :started}
+      (and (not go?) terminated?)          {:status :stopped}
+      :else                                {:status :error
+                                            :go?    go?
+                                            :thread thread-state})))
