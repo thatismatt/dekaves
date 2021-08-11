@@ -5,9 +5,9 @@
   (:import [java.util UUID]))
 
 (defn build [options]
-  (let [state  (atom {:store    {}
-                      :registry {}})
-        id     (str (UUID/randomUUID))]
+  (let [id    (str (UUID/randomUUID))
+        state (atom {:store {}
+                     :nodes #{{:id id :me? true}}})]
     (component/system-map
      :options (assoc options :id id)
      :state   state

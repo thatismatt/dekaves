@@ -12,7 +12,10 @@
    {:id     :register
     :doc    "Register some nodes with another node."
     :action (fn register-action [{:keys [params] :as ctx}]
-              (swap! (:state ctx) update :nodes (fn [nodes] (set (concat nodes (:nodes params)))))
+              (swap! (:state ctx) #(let [nodes (set (concat (:nodes %) (:nodes params)))]
+                                         (assoc %
+                                                :nodes nodes
+                                                :ring  (hash/make-ring (map :id nodes) (-> ctx :options :ring-spots)))))
               {:result :ok})}
    {:id     :store
     :doc    "Store a `value` at a given `key`."

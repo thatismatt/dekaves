@@ -26,6 +26,7 @@
 (defn app [{:keys [state options]}]
   (-> #'handler
       (middleware/debug-middleware (:id options) "worker")
+      (middleware/assoc-middleware :options options)
       (middleware/assoc-middleware :state state)))
 
 (defn status [worker]
@@ -43,7 +44,8 @@
 (def options-defaults {:queue-size          1
                        :queue-poll-timeout  1000
                        :queue-offer-timeout 1000
-                       :response-timeout    1000})
+                       :response-timeout    1000
+                       :ring-spots          512})
 
 (defrecord Worker [options state queue go? thread]
   component/Lifecycle
@@ -53,8 +55,8 @@
           go?     (atom true)
           thread  (Thread.
                    #(do (while @go?
-                          (if-let [params (.poll queue (:queue-poll-timeout options) TimeUnit/MILLISECONDS)]
-                            ((app this) {:params params})
+                          (if-let [message (.poll queue (:queue-poll-timeout options) TimeUnit/MILLISECONDS)]
+                            ((app {:state state :options options}) message)
                             (log/debug :loop)))
                         (log/info :shutdown)))]
       (.start thread)
