@@ -1,5 +1,6 @@
 (ns scratch
-  (:require [dekaves.core :as core]
+  (:require [com.stuartsierra.component :as component]
+            [dekaves.core :as core]
             [dekaves.http.server :as server]
             [dekaves.http.client :as client]
             [dekaves.hash :as hash]
@@ -9,31 +10,14 @@
 (comment ;;
 ()
 
-(def node-1)
+(def node-1
+  (atom (core/build {:http {:port 9091}})))
 
-(def node-2)
+(swap! node-1 component/start-system)
 
-(when (or (not (bound? #'node-1))
-          (and (or (not (:http node-1))
-                   (.isStopped (:http node-1)))
-               (not (deref (:go? (:worker node-1))))
-               ;; TODO: (= (.getState (:thread (:worker node-1))) Thread$State/TERMINATED)
-               ))
-  (def node-1
-    (core/start {:http {:port 9091}})))
+(swap! node-1 component/stop-system)
 
-(when (or (not (bound? #'node-2)) (.isStopped node-2))
-  (def node-2
-    (core/start {:http {:port 9092}})))
-
-(core/status node-1)
-
-(core/stop node-1)
-
-(worker/stop (:worker node-1))
-(server/stop (:http node-1))
-
-(-> node-2 :worker :go? (reset! false))
+(core/status @node-1)
 
 (client/request {:url "http://localhost:9091"}
                 {:op :ping})
@@ -67,7 +51,7 @@
                           :port 9093}]})
 
 (client/request {:url "http://localhost:9091"}
-                {:op    :nodes})
+                {:op :nodes})
 
 (client/request {:url "http://localhost:9091"}
                 {:op :unknown})
@@ -76,8 +60,8 @@
 (-> node-1 :worker :queue (.offer {:op :count}))
 
 (-> node-1 :worker :queue (.offer {:op    :store
-                                     :key   :qux
-                                     :value :zim}))
+                                   :key   :qux
+                                   :value :zim}))
 
 (def queue (LinkedBlockingQueue.))
 

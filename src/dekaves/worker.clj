@@ -1,7 +1,8 @@
 (ns dekaves.worker
   (:require [clojure.tools.logging :as log]
             [dekaves.command :as command]
-            [dekaves.middleware :as middleware])
+            [dekaves.middleware :as middleware]
+            [com.stuartsierra.component :as component])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
 (defn run-thread [f]
@@ -26,13 +27,6 @@
       (middleware/debug-middleware (:id options) "worker")
       (middleware/assoc-middleware :state state)))
 
-(defn start [args]
-  (run-thread (app args)))
-
-(defn stop [worker]
-  (-> worker :go? (reset! false))
-  nil)
-
 (defn status [worker]
   (let [go?          (some-> worker :go? deref)
         thread-state (some-> worker :thread .getState)
@@ -44,3 +38,11 @@
       :else                                {:status :error
                                             :go?    go?
                                             :thread thread-state})))
+
+(defrecord Worker [options state queue go? thread]
+  component/Lifecycle
+  (start [this]
+    (merge this (run-thread (app this))))
+  (stop [this]
+    (reset! go? false)
+    this))

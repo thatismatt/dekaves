@@ -1,24 +1,20 @@
 (ns dekaves.core
   (:require [dekaves.http.server :as server]
-            [dekaves.worker :as worker])
+            [dekaves.worker :as worker]
+            [com.stuartsierra.component :as component])
   (:import [java.util UUID]))
 
-(defn start [options]
+(defn build [options]
   (let [state  (atom {:store    {}
                       :registry {}})
-        args   {:options options
-                :state   state}
-        worker (try (worker/start args) (catch Exception e))
-        http   (try (server/start args) (catch Exception e))
         id     (str (UUID/randomUUID))]
-    {:options (assoc options :id id)
+    (component/system-map
+     :options (assoc options :id id)
      :state   state
-     :worker  worker
-     :http    http}))
-
-(defn stop [node]
-  {:worker (worker/stop (:worker node))
-   :http   (server/stop (:http node))})
+     :worker  (component/using (worker/map->Worker {})
+                               [:options :state])
+     :http    (component/using (server/map->HTTPServer {})
+                               [:options :state]))))
 
 (defn status [node]
   (let [worker-status (worker/status (:worker node))
