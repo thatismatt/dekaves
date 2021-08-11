@@ -1,4 +1,6 @@
-(ns dekaves.command)
+(ns dekaves.command
+  (:require [clojure.tools.logging :as log]
+            [dekaves.hash :as hash]))
 
 (declare id->command)
 
@@ -9,35 +11,35 @@
                          :value  :pong})}
    {:id     :register
     :doc    "Register some nodes with another node."
-    :action (fn register-action [request params]
-              (swap! (request :state) update :nodes (fn [nodes] (set (concat nodes (:nodes params)))))
+    :action (fn register-action [{:keys [params] :as ctx}]
+              (swap! (:state ctx) update :nodes (fn [nodes] (set (concat nodes (:nodes params)))))
               {:result :ok})}
    {:id     :store
     :doc    "Store a `value` at a given `key`."
-    :action (fn store-action [request params]
-              (swap! (:state request) assoc-in [:store (:key params)] (:value params))
+    :action (fn store-action [{:keys [params] :as ctx}]
+              (swap! (:state ctx) assoc-in [:store (:key params)] (:value params))
               {:result :ok})}
    {:id     :retrieve
     :doc    "Retrieve a value for a given `key`."
-    :action (fn retrieve-action [request params]
+    :action (fn retrieve-action [{:keys [params] :as ctx}]
               (let [k (:key params)
-                    v (-> request :state deref :store (get k))]
+                    v (-> ctx :state deref :store (get k))]
                 {:result :ok
                  :key    k
                  :value  v}))}
    {:id     :count
     :doc    "Count the total key value pairs stored."
-    :action (fn count-action [request params]
+    :action (fn count-action [ctx]
               {:result :ok
-               :count  (-> request :state deref :store count)})}
+               :count  (-> ctx :state deref :store count)})}
    {:id     :nodes
     :doc    "List details about the known nodes in this cluster."
-    :action (fn nodes-action [request params]
+    :action (fn nodes-action [ctx]
               {:result :ok
-               :nodes  (-> request :state deref :nodes)})}
+               :nodes  (-> ctx :state deref :nodes)})}
    {:id     :help
     :doc    "Show available commands, or show the doc for a given `command`."
-    :action (fn help-action [request params]
+    :action (fn help-action [{:keys [params] :as ctx}]
               (let [command-id (:command params)
                     command    (id->command command-id)
                     unknown?   (and command-id (not command))]
@@ -53,8 +55,16 @@
 (def id->command
   (->> commands (map (juxt :id identity)) (into {})))
 
-(defn handle [request params]
-  (if-let [command (id->command (:op params))]
-    ((:action command) request params)
-    {:error :unknown-op
-     :op    (:op params)}))
+(defn handle [ctx]
+  (if-let [command (-> ctx :params :op id->command)]
+    (try
+      ((:action command) ctx)
+      (catch Exception e
+        (log/warn e "Unhandled exception while executing command" (:params ctx))
+        {:status    :error
+         :error     :exception
+         :exception {:type    (type e)
+                     :message (ex-message e)}}))
+    {:status :error
+     :error  :unknown-op
+     :op     (-> ctx :params :op)}))

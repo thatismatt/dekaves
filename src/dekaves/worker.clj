@@ -7,10 +7,9 @@
 
 (defn offer [worker params]
   (let [p                (promise)
-        params+promise   (assoc params ::promise p)
         offer-timeout    (-> worker :options :queue-offer-timeout)
         response-timeout (-> worker :options :response-timeout)
-        queued?          (-> worker :queue (.offer params+promise offer-timeout TimeUnit/MILLISECONDS))]
+        queued?          (-> worker :queue (.offer {:params params ::promise p} offer-timeout TimeUnit/MILLISECONDS))]
     (if queued?
       (deref p response-timeout
              {:result :error
@@ -18,10 +17,10 @@
       {:result :error
        :error  "queue full"})))
 
-(defn handler [{:keys [params] :as request}]
-  (let [result (command/handle request params)]
-    (when (::promise params)
-      (deliver (::promise params) result))
+(defn handler [ctx]
+  (let [result (command/handle ctx)]
+    (when (::promise ctx)
+      (deliver (::promise ctx) result))
     result))
 
 (defn app [{:keys [state options]}]
