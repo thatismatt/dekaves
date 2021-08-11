@@ -20,9 +20,10 @@
   (fn [request]
     (-> request (assoc k v) handler)))
 
-(defn debug-middleware [handler id]
-  (fn [request]
-    (let [_        (log/info :request id (:params request))
-          response (handler request)
-          _        (log/info :response id response)]
-      response)))
+(defn debug-middleware [handler id kind]
+  (let [ref (str (subs id 0 4) "-" kind)]
+    (fn [request]
+      (let [_        (log/info ref :request (:params request) "\n")
+            response (handler request)
+            _        (log/info ref :response response "\n")]
+        response))))

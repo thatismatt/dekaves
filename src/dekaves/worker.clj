@@ -23,7 +23,7 @@
 
 (defn app [{:keys [state options]}]
   (-> #'handler
-      (middleware/debug-middleware (str (-> options :http :port) "-worker"))
+      (middleware/debug-middleware (:id options) "worker")
       (middleware/assoc-middleware :state state)))
 
 (defn start [args]

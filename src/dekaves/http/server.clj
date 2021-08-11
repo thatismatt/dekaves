@@ -12,7 +12,7 @@
 
 (defn app [{:keys [state options]}]
   (-> #'handler
-      (middleware/debug-middleware (str (-> options :http :port) "-http"))
+      (middleware/debug-middleware (:id options) "http")
       (middleware/assoc-middleware :state state)
       middleware/edn-body-middleware))
 
