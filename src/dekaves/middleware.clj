@@ -16,9 +16,9 @@
     (let [edn-params (when (edn-request? request) (some-> request :body read-edn))]
       (-> request (update :params merge edn-params) handler))))
 
-(defn state-middleware [handler state]
+(defn assoc-middleware [handler k v]
   (fn [request]
-    (-> request (assoc :state state) handler)))
+    (-> request (assoc k v) handler)))
 
 (defn debug-middleware [handler id]
   (fn [request]

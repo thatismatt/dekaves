@@ -24,7 +24,7 @@
 (defn app [{:keys [state options]}]
   (-> #'handler
       (middleware/debug-middleware (str (-> options :http :port) "-worker"))
-      (middleware/state-middleware state)))
+      (middleware/assoc-middleware :state state)))
 
 (defn start [args]
   (run-thread (app args)))
