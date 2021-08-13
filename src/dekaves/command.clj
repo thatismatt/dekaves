@@ -64,10 +64,10 @@
       ((:action command) ctx)
       (catch Exception e
         (log/warn e "Unhandled exception while executing command" (:params ctx))
-        {:status    :error
+        {:result    :error
          :error     :exception
          :exception {:type    (type e)
                      :message (ex-message e)}}))
-    {:status :error
+    {:result :error
      :error  :unknown-op
      :op     (-> ctx :params :op)}))
