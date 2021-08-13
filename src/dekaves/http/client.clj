@@ -1,11 +1,12 @@
 (ns dekaves.http.client
   (:require [clojure.edn :as edn]
+            [lambdaisland.uri :as uri]
             [clj-http.client :as client]))
 
 (defn request [node body]
-  {:pre [(:url node)]}
+  {:pre [(:uri node)]}
   (let [response (try
-                   (client/post (:url node)
+                   (client/post (-> node :uri uri/map->URI str)
                                 ;; ???: should we be (binding [*print-length* false])?
                                 {:body (prn-str body)
                                  :headers {"content-type" "application/edn"}

@@ -26,48 +26,51 @@
 
 (core/status @node-2)
 
-(client/request {:url "http://localhost:9091"}
-                {:op :ping})
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
+                {:op :ping
+                 :ratify :deliver})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op    :store
                  :key   :foo
                  :value :bar})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op  :retrieve
                  :key :foo})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op  :retrieve
                  :key :qux})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :count})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :help})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op      :help
                  :command :help})
 
-(client/request {:url (str "http://localhost:" (-> @node-2 :options :http :port))}
+(client/request {:uri {:scheme "http" :host "localhost" :port (-> @node-2 :options :http :port)}}
                 {:op    :register
                  :nodes [{:id   (-> @node-1 :options :id)
-                          :host "localhost"
-                          :port (-> @node-1 :options :http :port)}]})
+                          :uri {:scheme "http"
+                                :host "localhost"
+                                :port (-> @node-1 :options :http :port)}}]})
 
-(client/request {:url (str "http://localhost:" (-> @node-1 :options :http :port))}
+(client/request {:uri {:scheme "http" :host "localhost" :port (-> @node-1 :options :http :port)}}
                 {:op    :register
                  :nodes [{:id   (-> @node-2 :options :id)
-                          :host "localhost"
-                          :port (-> @node-2 :options :http :port)}]})
+                          :uri {:scheme "http"
+                                :host "localhost"
+                                :port (-> @node-2 :options :http :port)}}]})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :nodes})
 
-(client/request {:url "http://localhost:9091"}
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :unknown})
 
 
