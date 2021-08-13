@@ -7,7 +7,7 @@
 (defn build [options]
   (let [id    (str (UUID/randomUUID))
         state (atom {:store {}
-                     :nodes #{{:id id :me? true}}})]
+                     :nodes {id {:id id :me? true}}})]
     (component/system-map
      :options (assoc options :id id)
      :state   state
