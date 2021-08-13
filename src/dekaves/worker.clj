@@ -6,21 +6,30 @@
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
 (defn offer [worker params]
-  (let [p                (promise)
+  (let [ratify           (get params :ratify :result)
         offer-timeout    (-> worker :options :queue-offer-timeout)
         response-timeout (-> worker :options :response-timeout)
-        queued?          (-> worker :queue (.offer {:params params ::promise p} offer-timeout TimeUnit/MILLISECONDS))]
-    (if queued?
-      (deref p response-timeout
-             {:result :error
-              :error  "timeout"})
-      {:result :error
-       :error  "queue full"})))
+        message          (if (= ratify :result)
+                           {:params params :promise (promise)}
+                           {:params params})
+        queued?          (if (= ratify :deliver)
+                           (-> worker :queue (.offer message))
+                           (-> worker :queue (.offer message offer-timeout TimeUnit/MILLISECONDS)))]
+    (cond (not queued?)       {:result :error
+                               :error  "queue full"}
+          ;; ???: should these be more like {:result :ok :detail :queued}
+          (= ratify :queue)   {:result :queued}
+          (= ratify :deliver) {:result :queued}
+          (= ratify :result)  (deref (:promise message) response-timeout
+                                     {:result :error
+                                      :error  "timeout"})
+          :else               {:result :error
+                               :error  (str "Unknown ratify value: " ratify)})))
 
 (defn handler [ctx]
   (let [result (command/handle ctx)]
-    (when (::promise ctx)
-      (deliver (::promise ctx) result))
+    (when (:promise ctx)
+      (deliver (:promise ctx) result))
     result))
 
 (defn app [{:keys [state options]}]
@@ -46,7 +55,8 @@
                        :queue-poll-timeout  1000
                        :queue-offer-timeout 1000
                        :response-timeout    1000
-                       :ring-spots          512})
+                       :ring-spots          512
+                       :ring-redundancy     2})
 
 (defrecord Worker [options state queue go? thread]
   component/Lifecycle
