@@ -19,9 +19,10 @@
       middleware/edn-body-middleware))
 
 (defn status [server]
-  (if-let [state (some-> server :jetty (.getState) str/lower-case keyword)]
-    {:status state}
-    {:status :built}))
+  (when server
+    (if-let [state (some-> server :jetty (.getState) str/lower-case keyword)]
+      {:status state}
+      {:status :built})))
 
 (defrecord HTTPServer [options worker jetty]
   component/Lifecycle

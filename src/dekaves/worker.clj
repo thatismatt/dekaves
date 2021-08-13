@@ -30,16 +30,17 @@
       (middleware/assoc-middleware :state state)))
 
 (defn status [worker]
-  (let [go?          (some-> worker :go? deref)
-        thread-state (some-> worker :thread .getState)
-        terminated?  (= thread-state Thread$State/TERMINATED)]
-    (cond
-      (and (nil? go?) (nil? thread-state)) {:status :built}
-      (and go? (not terminated?))          {:status :started}
-      (and (not go?) terminated?)          {:status :stopped}
-      :else                                {:status :error
-                                            :go?    go?
-                                            :thread thread-state})))
+  (when worker
+    (let [go?          (some-> worker :go? deref)
+          thread-state (some-> worker :thread .getState)
+          terminated?  (= thread-state Thread$State/TERMINATED)]
+      (cond
+        (and (nil? go?) (nil? thread-state)) {:status :built}
+        (and go? (not terminated?))          {:status :started}
+        (and (not go?) terminated?)          {:status :stopped}
+        :else                                {:status :error
+                                              :go?    go?
+                                              :thread thread-state}))))
 
 (def options-defaults {:queue-size          1
                        :queue-poll-timeout  1000
