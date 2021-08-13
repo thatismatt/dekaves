@@ -1,5 +1,8 @@
 (ns dekaves.utils)
 
+(defn named? [x]
+  (instance? clojure.lang.Named x))
+
 (defmacro do-1 [e1 & es]
   `(let [result# ~e1] ~@es result#))
 

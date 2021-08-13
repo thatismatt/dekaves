@@ -1,4 +1,5 @@
 (ns dekaves.hash
+  (:require [dekaves.utils :as u])
   (:import [java.security MessageDigest]
            [java.math BigInteger]
            [java.nio.charset Charset]))
@@ -7,6 +8,12 @@
   (let [algorithm (MessageDigest/getInstance "MD5")
         raw (.digest algorithm (.getBytes s (Charset/forName "UTF-8")))]
     (BigInteger. 1 raw)))
+
+(defn hash-key [k]
+  (cond
+    (u/named? k) (-> k name md5)
+    (string? k)  (md5 k)
+    :else        (throw (ex-info "Unable to hash key" {:key k}))))
 
 (defn multi-hash [s n]
   (map #(md5 (str s (format "%04d" %)))
@@ -22,7 +29,7 @@
               (if (contains? previous-nodes (:node e)) r (conj r e)))) [])))
 
 (defn ring-lookup [ring id redundancy]
-  (let [h (md5 id)]
+  (let [h (hash-key id)]
     (->> (concat (drop-while #(> h (:hash %)) ring) ring)
          (take redundancy)
          (map :node))))
