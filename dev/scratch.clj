@@ -10,11 +10,23 @@
 (comment ;;
 ()
 
-(def node-1
-  (atom (core/build {:http {:port 9091}})))
+(def node-1 (atom nil))
 
-(def node-2
-  (atom (core/build {:http {:port 9092}})))
+(def node-2 (atom nil))
+
+(do
+
+  (if (or (nil? @node-1) (= (:status (core/status @node-1)) :stopped))
+    (->> {:http {:port 9091}} core/build component/start-system (reset! node-1))
+    (swap! node-1 component/stop-system))
+
+  (if (or (nil? @node-2) (= (:status (core/status @node-2)) :stopped))
+    (->> {:http {:port 9092}} core/build component/start-system (reset! node-2))
+    (swap! node-2 component/stop-system))
+
+  (map (comp :status core/status) [@node-1 @node-2])
+
+  )
 
 (do (swap! node-1 component/start-system)
     (swap! node-2 component/start-system))
@@ -72,6 +84,5 @@
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :unknown})
-
 
 )
