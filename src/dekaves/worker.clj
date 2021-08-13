@@ -55,12 +55,13 @@
           queue   (LinkedBlockingQueue. (:queue-size options))
           go?     (atom true)
           thread  (Thread.
-                   #(do (while @go?
+                   #(do (log/info :starting)
+                        (while @go?
                           (if-let [message (.poll queue (:queue-poll-timeout options) TimeUnit/MILLISECONDS)]
                             ((app {:state state :options options}) message)
                             (log/debug :loop)))
                         (log/info :shutdown)))]
-      (.setName t (str *ns*))
+      (.setName thread (str "worker-" (:id options)))
       (.start thread)
       (assoc this
              :options options
