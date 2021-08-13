@@ -60,6 +60,7 @@
                             ((app {:state state :options options}) message)
                             (log/debug :loop)))
                         (log/info :shutdown)))]
+      (.setName t (str *ns*))
       (.start thread)
       (assoc this
              :options options
