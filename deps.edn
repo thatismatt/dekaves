@@ -6,5 +6,5 @@
            org.slf4j/slf4j-api            {:mvn/version "1.7.32"}
            ch.qos.logback/logback-core    {:mvn/version "1.2.5"}
            ch.qos.logback/logback-classic {:mvn/version "1.2.5"}}
- :paths   ["src"]
+ :paths   ["src" "resources"]
  :aliases {:dev {:extra-paths ["dev"]}}}
