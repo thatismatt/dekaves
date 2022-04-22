@@ -8,3 +8,8 @@
            ch.qos.logback/logback-classic {:mvn/version "1.2.5"}}
  :paths   ["src" "resources"]
  :aliases {:dev {:extra-paths ["dev"]}}}
+
+;; :test {:extra-paths ["test"]
+;;          :extra-deps  {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+;;                                                   :sha     "8c3f22363d63715de4087b038d79ae0de36a3263"}}
+;;          :main-opts   ["-m" "cognitect.test-runner"]}
