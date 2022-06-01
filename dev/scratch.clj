@@ -31,6 +31,15 @@
 
   )
 
+(let [nodes (map (fn [node]
+                   {:id  (-> node :options :id)
+                    :uri {:scheme "http" :host "localhost" :port (-> node :options :http :port)}})
+                 [@node-1 @node-2 @node-3])]
+  (mapv (fn [node]
+          (client/request node {:op    :register
+                                :nodes (disj (set nodes) node)}))
+        nodes))
+
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :ping
                  :ratify :deliver})
@@ -77,5 +86,7 @@
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :unknown})
+
+(map (comp :store deref :state deref) [node-1 node-2 node-3])
 
 )
