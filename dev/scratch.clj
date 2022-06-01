@@ -7,6 +7,11 @@
             [dekaves.worker :as worker])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
+(defn node-start-stop [node-atom options]
+  (if (or (map? @node-atom) (= (:status (core/status @node-atom)) :stopped))
+    (->> options core/build component/start-system (reset! node-atom))
+    (swap! node-atom component/stop-system)))
+
 (comment ;;
 ()
 
@@ -14,29 +19,17 @@
 
 (def node-2 (atom nil))
 
+(def node-3 (atom nil))
+
 (do
 
-  (if (or (nil? @node-1) (= (:status (core/status @node-1)) :stopped))
-    (->> {:http {:port 9091}} core/build component/start-system (reset! node-1))
-    (swap! node-1 component/stop-system))
+  (node-start-stop node-1 {:http {:port 9091}})
+  (node-start-stop node-2 {:http {:port 9092}})
+  (node-start-stop node-3 {:http {:port 9093}})
 
-  (if (or (nil? @node-2) (= (:status (core/status @node-2)) :stopped))
-    (->> {:http {:port 9092}} core/build component/start-system (reset! node-2))
-    (swap! node-2 component/stop-system))
-
-  (map (comp :status core/status) [@node-1 @node-2])
+  (map (comp :status core/status deref) [node-1 node-2 node-3])
 
   )
-
-(do (swap! node-1 component/start-system)
-    (swap! node-2 component/start-system))
-
-(do (swap! node-1 component/stop-system)
-    (swap! node-2 component/stop-system))
-
-(core/status @node-1)
-
-(core/status @node-2)
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :ping
