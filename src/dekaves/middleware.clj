@@ -23,7 +23,7 @@
 (defn debug-middleware [handler id kind]
   (let [ref (str (subs id 0 4) "-" kind)]
     (fn [request]
-      (let [_        (log/info ref :request (:params request) "\n")
+      (let [_        (log/info ref :request (:params request))
             response (handler request)
-            _        (log/info ref :response response "\n")]
+            _        (log/info ref :response response)]
         response))))
