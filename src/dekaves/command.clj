@@ -20,8 +20,8 @@
               {:result :ok})}
    {:id     :store
     :doc    "Store a `value` at a given `key`."
-    :action (fn store-action [{:keys [params options state] :as ctx}]
-              (let [k (:key params)
+    :action (fn store-action [{:keys [params options state] :as _ctx}]
+              (let [k     (:key params)
                     nodes (hash/ring-lookup (:ring @state) k (:ring-redundancy options))]
                 (doseq [n nodes]
                   (if (= n (:id options))
@@ -36,8 +36,8 @@
                 {:result :ok}))}
    {:id     :retrieve
     :doc    "Retrieve a value for a given `key`."
-    :action (fn retrieve-action [{:keys [params] :as ctx}]
-              (let [k (:key params)
+    :action (fn retrieve-action [ctx]
+              (let [k (-> ctx :params :key)
                     v (-> ctx :state deref :store (get k))]
                 {:result :ok
                  :key    k
@@ -54,18 +54,18 @@
                :nodes  (-> ctx :state deref :nodes vals)})}
    {:id     :help
     :doc    "Show available commands, or show the doc for a given `command`."
-    :action (fn help-action [{:keys [params] :as ctx}]
-              (let [command-id (:command params)
+    :action (fn help-action [ctx]
+              (let [command-id (-> ctx :params :command)
                     command    (id->command command-id)
-                    unknown?   (and command-id (not command))]
+                    list-all   (not command-id)]
                 (cond
                   command  {:result  :ok
                             :command command-id
                             :doc     (:doc command)}
-                  unknown? {:result :error
-                            :error  (str "unknown command " command-id)}
-                  :else    {:result   :ok
-                            :commands (->> commands (map :id) sort)})))}])
+                  list-all {:result   :ok
+                            :commands (->> id->command keys sort)}
+                  :else    {:result :error
+                            :error  (str "unknown command " command-id)})))}])
 
 (def id->command
   (->> commands (map (juxt :id identity)) (into {})))

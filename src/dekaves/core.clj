@@ -20,7 +20,7 @@
   (let [worker-status (worker/status (:worker node))
         http-status   (server/status (:http node))]
     {:worker worker-status
-     :http http-status
+     :http   http-status
      :status (if (= worker-status http-status)
                (:status worker-status)
                :error)}))

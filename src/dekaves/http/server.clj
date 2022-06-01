@@ -3,10 +3,9 @@
             [ring.adapter.jetty :as jetty]
             [com.stuartsierra.component :as component]
             [dekaves.worker :as worker]
-            [dekaves.http.client :as client]
             [dekaves.middleware :as middleware]))
 
-(defn handler [{:keys [worker params] :as request}]
+(defn handler [{:keys [worker params] :as _request}]
   (let [result (worker/offer worker params)]
     {:body (pr-str ;; TODO: move pr-str to middleware
             result)
