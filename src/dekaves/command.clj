@@ -27,9 +27,9 @@
                   (if (= n (:id options))
                     (swap! state assoc-in [:store k] (:value params))
                     (when-not (:store-only params) ;; TODO: avoids cycles of store calls between primary and secondary shards, but feels really hacky
-                      (let [response (client/request (->> @state :nodes n) (assoc params
-                                                                                  :store-only true
-                                                                                  :ratify :queue))]
+                      (let [response (client/request (-> @state :nodes (get n)) (assoc params
+                                                                                       :store-only true
+                                                                                       :ratify :queue))]
                         (when-not (= (:result response) :queued)
                           ;; TODO: requeue the request
                           )))))
