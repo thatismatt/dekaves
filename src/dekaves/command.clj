@@ -74,6 +74,11 @@
     :action (fn nodes-action [ctx]
               {:result :ok
                :nodes  (-> ctx :state deref :nodes vals)})}
+   {:id     :status
+    :doc    "Report status of this node"
+    :action (fn status-action [ctx]
+              {:result :ok
+               :id     (-> ctx :options :id)})}
    {:id     :help
     :doc    "Show available commands, or show the doc for a given `command`."
     :action (fn help-action [ctx]
