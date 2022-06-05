@@ -19,8 +19,11 @@
   (map #(md5 (str s (format "%04d" %)))
        (range n)))
 
+(defn ring-possible? [redundancy nodes]
+  (<= redundancy (count nodes)))
+
 (defn make-ring [nodes spots redundancy]
-  {:pre [(<= redundancy (count nodes))]}
+  {:pre [(ring-possible? redundancy nodes)]}
   (->> nodes
        (mapcat (fn [node] (map (fn [h] {:node node :hash h}) (multi-hash node spots))))
        (sort-by :hash)
