@@ -24,17 +24,33 @@
     :action (fn store-action [{:keys [params options state] :as _ctx}]
               (let [k     (:key params)
                     nodes (hash/ring-lookup (:ring @state) k (:ring-redundancy options))]
-                (doseq [n nodes]
-                  (if (= n (:id options))
-                    (swap! state assoc-in [:store k] (:value params))
-                    (when-not (:store-only params) ;; TODO: avoids cycles of store calls between primary and secondary shards, but feels really hacky
-                      (let [response (client/request (-> @state :nodes (get n)) (assoc params
-                                                                                       :store-only true
-                                                                                       :ratify :queue))]
-                        (when-not (= (:result response) :queued)
-                          ;; TODO: requeue the request
-                          )))))
-                {:result :ok}))}
+                (if (seq nodes)
+                  (let [results (map (fn [n]
+                                       (if (= n (:id options))
+                                         (do (swap! state assoc-in [:store k] (:value params))
+                                             {:node        n
+                                              :destination :local})
+                                         (when-not (:store-only params) ;; TODO: avoids cycles of store calls between primary and secondary shards, but feels really hacky
+                                           (let [response (client/request (-> @state :nodes (get n)) (assoc params
+                                                                                                            :store-only true
+                                                                                                            :ratify :queue))]
+                                             {:node        n
+                                              :destination :remote
+                                              :response    response}))))
+                                     nodes)
+                        ok?     (every? (fn [r]
+                                          (or (nil? r)
+                                              (= :local (:destination r))
+                                              (and (= :remote (:destination r))
+                                                   (-> r :response :result (= :queued)))))
+                                        results)]
+                    ;; results:
+                    ;; ({:node "5dac9ec1-c247-4f9c-93f4-d53a1b9114bc", :destination :remote, :response {:result :queued}}
+                    ;;  {:node "c943baa8-39bd-4b6c-b4e8-363d85fcca4c", :destination :local})
+                    {:result  (if ok? :ok :error)
+                     :results results})
+                  {:result :error
+                   :error  :insufficient-nodes})))}
    {:id     :retrieve
     :doc    "Retrieve a value for a given `key`."
     :action (fn retrieve-action [ctx]
