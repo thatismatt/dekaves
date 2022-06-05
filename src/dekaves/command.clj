@@ -99,15 +99,18 @@
   (->> commands (map (juxt :id identity)) (into {})))
 
 (defn handle [ctx]
-  (if-let [command (-> ctx :params :op id->command)]
+  (let [op      (or (-> ctx :params :op)
+                    :status)
+        command (id->command op)]
     (try
-      ((:action command) ctx)
+      (if command
+        ((:action command) ctx)
+        {:result :error
+         :error  :unknown-op
+         :op     (-> ctx :params :op)})
       (catch Exception e
         (log/warn e "Unhandled exception while executing command" (:params ctx))
         {:result    :error
          :error     :exception
          :exception {:type    (type e)
-                     :message (ex-message e)}}))
-    {:result :error
-     :error  :unknown-op
-     :op     (-> ctx :params :op)}))
+                     :message (ex-message e)}}))))
