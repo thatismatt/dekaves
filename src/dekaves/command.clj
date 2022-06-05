@@ -65,8 +65,9 @@
                             :doc     (:doc command)}
                   list-all {:result   :ok
                             :commands (->> id->command keys sort)}
-                  :else    {:result :error
-                            :error  (str "unknown command " command-id)})))}])
+                  :else    {:result  :error
+                            :error   :unknown-command
+                            :command command-id})))}])
 
 (def id->command
   (->> commands (map (juxt :id identity)) (into {})))
