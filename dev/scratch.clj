@@ -8,41 +8,40 @@
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
 (defn node-start-stop [node-atom options]
-  (if (or (map? @node-atom) (= (:status (core/status @node-atom)) :stopped))
+  (if (or (nil? @node-atom) (= (:status (core/status @node-atom)) :stopped))
     (->> options core/build component/start-system (reset! node-atom))
     (swap! node-atom component/stop-system)))
 
 (comment ;;
 ()
 
-(def node-1 (atom nil))
+(def nodes (repeatedly 5 #(atom nil)))
 
-(def node-2 (atom nil))
+(mapv #(node-start-stop %1 {:http {:port (+ 9091 %2)}}) nodes (range))
 
-(def node-3 (atom nil))
+(map (comp :status core/status deref) nodes)
 
-(do
-
-  (node-start-stop node-1 {:http {:port 9091}})
-  (node-start-stop node-2 {:http {:port 9092}})
-  (node-start-stop node-3 {:http {:port 9093}})
-
-  (map (comp :status core/status deref) [node-1 node-2 node-3])
-
-  )
-
-(let [nodes (map (fn [node]
-                   {:id  (-> node :options :id)
-                    :uri {:scheme "http" :host "localhost" :port (-> node :options :http :port)}})
-                 [@node-1 @node-2 @node-3])]
+(let [ns (map (fn [node]
+                {:id  (-> @node :options :id)
+                 :uri {:scheme "http" :host "localhost" :port (-> @node :options :http :port)}})
+              nodes)]
   (mapv (fn [node]
           (client/request node {:op    :register
-                                :nodes (disj (set nodes) node)}))
-        nodes))
+                                :nodes (disj (set ns) node)}))
+        ns))
+
+(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
+                {:op    :register
+                 :nodes []})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :ping
                  :ratify :deliver})
+
+(client/request {:uri {:scheme "http" :host "localhost" :port 9092}}
+                {:op    :store
+                 :key   :foo
+                 :value :bar})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op    :store
@@ -53,9 +52,20 @@
                 {:op  :retrieve
                  :key :foo})
 
+(mapv (fn [node]
+        (client/request {:uri {:scheme "http" :host "localhost" :port (-> @node :options :http :port)}}
+                        {:op  :retrieve
+                         :key :foo}))
+      nodes)
+
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op  :retrieve
                  :key :qux})
+
+(mapv (fn [node]
+        (client/request {:uri {:scheme "http" :host "localhost" :port (-> @node :options :http :port)}}
+                        {:op  :count}))
+      nodes)
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :count})
@@ -67,26 +77,12 @@
                 {:op      :help
                  :command :help})
 
-(client/request {:uri {:scheme "http" :host "localhost" :port (-> @node-2 :options :http :port)}}
-                {:op    :register
-                 :nodes [{:id   (-> @node-1 :options :id)
-                          :uri {:scheme "http"
-                                :host "localhost"
-                                :port (-> @node-1 :options :http :port)}}]})
-
-(client/request {:uri {:scheme "http" :host "localhost" :port (-> @node-1 :options :http :port)}}
-                {:op    :register
-                 :nodes [{:id   (-> @node-2 :options :id)
-                          :uri {:scheme "http"
-                                :host "localhost"
-                                :port (-> @node-2 :options :http :port)}}]})
-
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :nodes})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
                 {:op :unknown})
 
-(map (comp :store deref :state deref) [node-1 node-2 node-3])
+(map (comp :store deref :state deref) nodes)
 
 )
