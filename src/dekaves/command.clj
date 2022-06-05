@@ -13,10 +13,11 @@
    {:id     :register
     :doc    "Register some nodes with another node."
     :action (fn register-action [{:keys [params options] :as ctx}]
-              (swap! (:state ctx) #(let [nodes (into (:nodes %) (map (juxt :id identity)) (:nodes params))]
-                                     (assoc %
-                                            :nodes nodes
-                                            :ring  (hash/make-ring (keys nodes) (:ring-spots options) (:ring-redundancy options)))))
+              (swap! (:state ctx) #(let [nodes          (into (:nodes %) (map (juxt :id identity)) (:nodes params))
+                                         ring-possible? (hash/ring-possible? (:ring-redundancy options) (keys nodes))]
+                                     (cond-> %
+                                       :always        (assoc :nodes nodes)
+                                       ring-possible? (assoc :ring (hash/make-ring (keys nodes) (:ring-spots options) (:ring-redundancy options))))))
               {:result :ok})}
    {:id     :store
     :doc    "Store a `value` at a given `key`."
