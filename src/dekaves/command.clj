@@ -44,7 +44,7 @@
                  :key    k
                  :value  v}))}
    {:id     :count
-    :doc    "Count the total key value pairs stored."
+    :doc    "Count the number of key value pairs stored by this node."
     :action (fn count-action [ctx]
               {:result :ok
                :count  (-> ctx :state deref :store count)})}
