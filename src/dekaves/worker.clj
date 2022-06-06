@@ -2,6 +2,7 @@
   (:require [clojure.tools.logging :as log]
             [dekaves.command :as command]
             [dekaves.middleware :as middleware]
+            [dekaves.status :as status]
             [com.stuartsierra.component :as component])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
@@ -32,24 +33,12 @@
       (deliver (:promise ctx) result))
     result))
 
-(defn app [{:keys [state options]}]
+(defn app [{:keys [state options worker]}]
   (-> #'handler
       (middleware/debug-middleware (:id options) "worker")
       (middleware/assoc-middleware :options options)
-      (middleware/assoc-middleware :state state)))
-
-(defn status [worker]
-  (when worker
-    (let [go?          (some-> worker :go? deref)
-          thread-state (some-> worker :thread .getState)
-          terminated?  (= thread-state Thread$State/TERMINATED)]
-      (cond
-        (and (nil? go?) (nil? thread-state)) {:status :built}
-        (and go? (not terminated?))          {:status :started}
-        (and (not go?) terminated?)          {:status :stopped}
-        :else                                {:status :error
-                                              :go?    go?
-                                              :thread thread-state}))))
+      (middleware/assoc-middleware :state state)
+      (middleware/assoc-middleware :worker worker)))
 
 (def options-defaults {:queue-size          1
                        :queue-poll-timeout  1000
@@ -59,6 +48,7 @@
                        :ring-redundancy     2})
 
 (defrecord Worker [options state queue go? thread]
+
   component/Lifecycle
   (start [this]
     (let [options (merge options-defaults options)
@@ -68,7 +58,7 @@
                    #(do (log/info :starting)
                         (while @go?
                           (if-let [message (.poll queue (:queue-poll-timeout options) TimeUnit/MILLISECONDS)]
-                            ((app {:state state :options options}) message)
+                            ((app {:state state :options options :worker this}) message)
                             (log/debug :loop)))
                         (log/info :shutdown)))]
       (.setName thread (str "worker-" (:id options)))
@@ -80,4 +70,17 @@
              :thread  thread)))
   (stop [this]
     (reset! go? false)
-    this))
+    this)
+
+  status/Status
+  (status/status [_]
+    (let [go?          (some-> go? deref)
+          thread-state (some-> thread .getState)
+          terminated?  (= thread-state Thread$State/TERMINATED)]
+      (cond
+        (and (nil? go?) (nil? thread-state)) {:status :built}
+        (and go? (not terminated?))          {:status :started}
+        (and (not go?) terminated?)          {:status :stopped}
+        :else                                {:status :error
+                                              :go?    go?
+                                              :thread thread-state}))))

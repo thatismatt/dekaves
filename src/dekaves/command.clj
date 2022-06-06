@@ -1,7 +1,8 @@
 (ns dekaves.command
   (:require [clojure.tools.logging :as log]
             [dekaves.http.client :as client]
-            [dekaves.hash :as hash]))
+            [dekaves.hash :as hash]
+            [dekaves.status :as status]))
 
 (declare id->command)
 
@@ -77,8 +78,9 @@
    {:id     :status
     :doc    "Report status of this node"
     :action (fn status-action [ctx]
-              {:result :ok
-               :id     (-> ctx :options :id)})}
+              (-> ctx :worker status/status
+                  (assoc :result :ok
+                         :id     (-> ctx :options :id))))}
    {:id     :help
     :doc    "Show available commands, or show the doc for a given `command`."
     :action (fn help-action [ctx]

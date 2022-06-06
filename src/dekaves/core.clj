@@ -17,12 +17,3 @@
                                [:options :state])
      :http    (component/using (server/map->HTTPServer {})
                                [:options :worker]))))
-
-(defn status [node]
-  (let [worker-status (worker/status (:worker node))
-        http-status   (server/status (:http node))]
-    {:worker worker-status
-     :http   http-status
-     :status (if (= worker-status http-status)
-               (:status worker-status)
-               :error)}))

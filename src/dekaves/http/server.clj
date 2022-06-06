@@ -3,7 +3,8 @@
             [ring.adapter.jetty :as jetty]
             [com.stuartsierra.component :as component]
             [dekaves.worker :as worker]
-            [dekaves.middleware :as middleware]))
+            [dekaves.middleware :as middleware]
+            [dekaves.status :as status]))
 
 (defn handler [{:keys [worker params] :as _request}]
   (let [result (worker/offer worker params)]
@@ -17,13 +18,8 @@
       (middleware/assoc-middleware :worker worker)
       middleware/edn-body-middleware))
 
-(defn status [server]
-  (when server
-    (if-let [state (some-> server :jetty (.getState) str/lower-case keyword)]
-      {:status state}
-      {:status :built})))
-
 (defrecord HTTPServer [options worker jetty]
+
   component/Lifecycle
   (start [this]
     (assoc this
@@ -32,4 +28,10 @@
                                            :join? false))))
   (stop [this]
     (.stop jetty)
-    this))
+    this)
+
+  status/Status
+  (status [_]
+    (if-let [state (some-> jetty (.getState) str/lower-case keyword)]
+      {:status state}
+      {:status :built})))
