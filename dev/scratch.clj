@@ -31,62 +31,63 @@
                  :uri {:scheme "http" :host "localhost" :port (-> @node :options :http :port)}})
               nodes)]
   (mapv (fn [node]
-          (client/request node {:op    :register
-                                :nodes (disj (set ns) node)}))
+          (client/request node {:command :register
+                                :nodes   (disj (set ns) node)}))
         ns))
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op    :register
-                 :nodes []})
+                {:command :register
+                 :nodes   []})
 
-(client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op :ping
-                 :ratify :deliver})
+(for [ratify [:queue :deliver :result]]
+  (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
+                  {:command :ping
+                   :ratify  ratify}))
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9092}}
-                {:op    :store
-                 :key   :foo
-                 :value :bar})
+                {:command :store
+                 :key     :foo
+                 :value   :bar})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op    :store
-                 :key   :foo
-                 :value :bar})
+                {:command :store
+                 :key     :foo
+                 :value   :bar})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op  :retrieve
-                 :key :foo})
+                {:command :retrieve
+                 :key     :foo})
 
 (mapv (fn [node]
         (client/request {:uri {:scheme "http" :host "localhost" :port (-> @node :options :http :port)}}
-                        {:op  :retrieve
-                         :key :foo}))
+                        {:command :retrieve
+                         :key     :foo}))
       nodes)
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op  :retrieve
-                 :key :qux})
+                {:command :retrieve
+                 :key     :qux})
 
 (mapv (fn [node]
         (client/request {:uri {:scheme "http" :host "localhost" :port (-> @node :options :http :port)}}
-                        {:op  :count}))
+                        {:command :count}))
       nodes)
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op :count})
+                {:command :count})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op :help})
+                {:command :help})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op      :help
-                 :command :help})
+                {:command :help
+                 :target  :help})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op :nodes})
+                {:command :nodes})
 
 (client/request {:uri {:scheme "http" :host "localhost" :port 9091}}
-                {:op :unknown})
+                {:command :unknown})
 
 (map (comp :store deref :state deref) nodes)
 

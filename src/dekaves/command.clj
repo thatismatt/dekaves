@@ -84,7 +84,7 @@
    {:id     :help
     :doc    "Show available commands, or show the doc for a given `command`."
     :action (fn help-action [ctx]
-              (let [command-id (-> ctx :params :command)
+              (let [command-id (-> ctx :params :target)
                     command    (id->command command-id)
                     list-all   (not command-id)]
                 (cond
@@ -101,15 +101,15 @@
   (->> commands (map (juxt :id identity)) (into {})))
 
 (defn handle [ctx]
-  (let [op      (or (-> ctx :params :op)
-                    :status)
-        command (id->command op)]
+  (let [command-id (or (-> ctx :params :command)
+                       :status)
+        command    (id->command command-id)]
     (try
       (if command
         ((:action command) ctx)
-        {:result :error
-         :error  :unknown-op
-         :op     (-> ctx :params :op)})
+        {:result  :error
+         :error   :unknown-command
+         :command command-id})
       (catch Exception e
         (log/warn e "Unhandled exception while executing command" (:params ctx))
         {:result    :error
