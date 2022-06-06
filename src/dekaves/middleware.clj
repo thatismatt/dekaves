@@ -21,7 +21,7 @@
     (-> request (assoc k v) handler)))
 
 (defn debug-middleware [handler id kind]
-  (let [ref (str (subs id 0 4) "-" kind)]
+  (let [ref (str (re-find #"^.{1,4}" id) "-" kind)]
     (fn [request]
       (let [_        (log/info ref :request (:params request))
             response (handler request)

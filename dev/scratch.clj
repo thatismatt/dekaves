@@ -17,7 +17,11 @@
 
 (def nodes (repeatedly 5 #(atom nil)))
 
-(mapv #(node-start-stop %1 {:http {:port (+ 9091 %2)}}) nodes (range))
+(mapv #(node-start-stop %1 {:id %3
+                            :http {:port (+ 9091 %2)}})
+      nodes
+      (range)
+      ["kite" "hawk" "rook" "lark" "swan" "crow" "dove" "heron" "raven" "pidgeon" "sparrow" "jackdaw" "swallow" "falcon" "eagle" "vulture" "wagtail"])
 
 (map (comp :status core/status deref) nodes)
 

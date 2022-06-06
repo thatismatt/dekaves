@@ -5,11 +5,13 @@
   (:import [java.util UUID]))
 
 (defn build [options]
-  (let [id    (str (UUID/randomUUID))
+  (let [options (merge {:id (str (UUID/randomUUID))}
+                       options)
+        id (:id options)
         state (atom {:store {}
                      :nodes {id {:id id :me? true}}})]
     (component/system-map
-     :options (assoc options :id id)
+     :options options
      :state   state
      :worker  (component/using (worker/map->Worker {})
                                [:options :state])
