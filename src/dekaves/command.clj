@@ -56,15 +56,17 @@
     :doc    "Retrieve a value for a given `key`."
     :action (fn retrieve-action [{:keys [params options state] :as _ctx}]
               (let [k     (-> params :key)
-                    nodes (hash/ring-lookup (:ring @state) k (:ring-redundancy options))]
-                (if (contains? (set nodes) (:id options))
-                  (let [v (-> @state :store (get k))]
-                    {:result :ok
-                     :node   (:id options)
-                     :key    k
-                     :value  v})
-                  (let [response (client/request (-> @state :nodes (get (first nodes))) params)]
-                    response))))}
+                    nodes (hash/ring-lookup (:ring @state) k (:ring-redundancy options))
+                    local? (contains? (set nodes) (:id options))]
+                (cond
+                  (empty? nodes) {:result :error
+                                  :error  :insufficient-nodes}
+                  local?         (let [v (-> @state :store (get k))]
+                                   {:result :ok
+                                    :node   (:id options)
+                                    :key    k
+                                    :value  v})
+                  :else          (client/request (-> @state :nodes (get (first nodes))) params))))}
    {:id     :count
     :doc    "Count the number of key value pairs stored by this node."
     :action (fn count-action [ctx]
