@@ -40,19 +40,11 @@
       (middleware/assoc-middleware :state state)
       (middleware/assoc-middleware :worker worker)))
 
-(def options-defaults {:queue-size          1
-                       :queue-poll-timeout  1000
-                       :queue-offer-timeout 1000
-                       :response-timeout    1000
-                       :ring-spots          512
-                       :ring-redundancy     2})
-
 (defrecord Worker [options state queue go? thread]
 
   component/Lifecycle
   (start [this]
-    (let [options (merge options-defaults options)
-          queue   (LinkedBlockingQueue. (:queue-size options))
+    (let [queue   (LinkedBlockingQueue. (:queue-size options))
           go?     (atom true)
           thread  (Thread.
                    #(do (log/info :starting)
