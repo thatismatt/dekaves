@@ -17,15 +17,16 @@
                            (-> worker :queue (.offer message))
                            (-> worker :queue (.offer message offer-timeout TimeUnit/MILLISECONDS)))]
     (cond (not queued?)       {:result :error
-                               :error  "queue full"}
+                               :error  :queue-full}
           ;; ???: should these be more like {:result :ok :detail :queued}
           (= ratify :queue)   {:result :queued}
           (= ratify :deliver) {:result :queued}
           (= ratify :result)  (deref (:promise message) response-timeout
                                      {:result :error
-                                      :error  "timeout"})
+                                      :error  :timeout})
           :else               {:result :error
-                               :error  (str "Unknown ratify value: " ratify)})))
+                               :error  :unknown-ratify
+                               :ratify ratify})))
 
 (defn handler [ctx]
   (let [result (command/handle ctx)]
